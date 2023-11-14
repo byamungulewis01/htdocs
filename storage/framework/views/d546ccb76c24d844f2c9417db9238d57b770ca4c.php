@@ -225,8 +225,22 @@ CLE Complainces
 
       ajax: "<?php echo e(env('APP_URL')); ?>/api/users/compliances?year=<?php echo e($currentDate); ?>",
       columns: [
-        {  data: 'name' },{  data: 'date' },{  data: 'regNumber' },{  data: 'status' },{  data: 'practicing' },{  data: 'email' },{  data: 'phone' },{  data: 'bookings_credit' },{  data: 'invitation_credit' },{  data: 'extra_cles_credit' },{  data: 'total_credits' },
+        {  data: 'name' },{  data: 'date' },{  data: 'regNumber' },{  data: 'status' },{  data: 'practicing' },{  data: 'email' },{  data: 'phone' },{  data: 'bookings_credit' },{  data: 'invitation_credit' },{  data: 'extra_cles_credit' },{  data: '' },
       ],  
+      columnDefs:[
+          
+          {
+              targets:10,
+              responsivePriority:4,
+              render:function(e,t,a,s){
+                var n = parseFloat(a.bookings_credit);
+                var i = parseFloat(a.invitation_credit);
+                var o = parseFloat(a.extra_cles_credit);
+                var sum = parseFloat(n + i + o);
+                return sum;
+              }
+          },
+        ],
       order: [],
     
       dom: '<"row me-2"<"col-md-2"<"me-3"l>><"col-md-10"<"dt-action-buttons text-xl-end text-lg-start text-md-end text-start d-flex align-items-center justify-content-end flex-md-row flex-column mb-3 mb-md-0"fB>>>t<"row mx-2"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',

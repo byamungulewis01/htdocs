@@ -58,7 +58,6 @@ class UserController extends Controller
             $currentDate = date('Y-m-d H:i:s');
             $year = Carbon::now()->year;
         }
-
         $data = DB::table('users')->join('phonenumbers', 'users.id', '=', 'phonenumbers.user_id')
             ->leftJoin('invitation', function ($join) use ($currentDate, $year) {
                 $join->on('users.id', '=', 'invitation.user_id')
@@ -72,15 +71,17 @@ class UserController extends Controller
                 $join->on('users.id', '=', 'extra_cles.advocate')
                     ->where('extra_cles.created_at', '<=', $currentDate)->where('extra_cles.yearInBar', '<=', $year);
             })->where('users.practicing', 2)
-            ->select('users.name', 'users.date', 'users.regNumber', DB::raw('case users.status when 1 then "Advocate" when 2 then "Intern Advocate" when 3 then "Support Staff" when 4 then "Technic Staff" end AS status'), DB::raw('case users.practicing when 2 then "Active" else "Inactive" end as practicing'), 'users.email', 'phonenumbers.phone')
-            ->groupBy('users.id', 'users.name', 'users.email', 'users.status', 'users.practicing', 'users.date', 'users.regNumber', 'phonenumbers.phone')
-            ->addSelect(DB::raw('SUM(IFNULL(invitation.credit, 0)) as invitation_credit'))
-            ->addSelect(DB::raw('SUM(IFNULL(bookings.cumulatedCredit, 0)) as bookings_credit'))
-            ->addSelect(DB::raw('SUM(IFNULL(extra_cles.credits, 0)) as extra_cles_credit'))
-            ->addSelect(DB::raw('SUM(IFNULL(invitation.credit, 0)) + SUM(IFNULL(bookings.cumulatedCredit, 0)) + SUM(IFNULL(extra_cles.credits, 0)) as total_credits'))
+            ->select('users.name', 'users.date', 'users.regNumber', 'users.email', 'phonenumbers.phone',
+                DB::raw('case users.status when 1 then "Advocate" when 2 then "Intern Advocate" when 3 then "Support Staff" when 4 then "Technic Staff" end AS status'),
+                DB::raw('case users.practicing when 2 then "Active" else "Inactive" end as practicing'),
+                DB::raw('(SELECT COALESCE(SUM(bookings.cumulatedCredit), 0) FROM bookings WHERE advocate = users.id) as bookings_credit'),
+                DB::raw('(SELECT COALESCE(SUM(extra_cles.credits), 0) FROM extra_cles WHERE advocate = users.id) as extra_cles_credit'),
+                DB::raw('(SELECT COALESCE(SUM(invitation.credit), 0) FROM invitation WHERE user_id = users.id) as invitation_credit'),
+            )->groupBy('users.id')
             ->orderByRaw("CASE WHEN regNumber REGEXP '^[0-9]' THEN CAST(SUBSTRING_INDEX(regNumber, '/', 1) AS UNSIGNED) ELSE 999999999 END")
             ->orderBy("regNumber")
             ->get();
+
 
         if (!$request->expectsJson()) {
             return $data;
@@ -204,7 +205,8 @@ class UserController extends Controller
     public function api(Request $request)
     {
 
-        $data = User::with(['phone'])->orderByRaw("CASE WHEN regNumber REGEXP '^[0-9]' THEN CAST(SUBSTRING_INDEX(regNumber, '/', 1) AS UNSIGNED) ELSE 999999999 END")->take(2251)
+        // $data = User::with(['phone'])->orderBy("id")->get();
+        $data = User::with(['phone'])->orderByRaw("CASE WHEN regNumber REGEXP '^[0-9]' THEN CAST(SUBSTRING_INDEX(regNumber, '/', 1) AS UNSIGNED) ELSE 999999999 END")
             ->orderBy("regNumber")
             ->get();
         if (!$request->expectsJson()) {
